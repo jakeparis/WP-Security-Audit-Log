@@ -831,12 +831,19 @@ class WSAL_Sensors_System extends WSAL_AbstractSensor {
 
 		if ( $logged_in ) {
 			if ( 'on' === $this->plugin->GetGlobalOption( 'log-404', 'off' ) ) {
-				// Filter global arrays for security.
-				$server_array = filter_input_array( INPUT_SERVER );
+				// Get global $wp_query object.
+				global $wp_query;
 
-				// Request URL.
-				$request_uri = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL );
-				$url = home_url() . $request_uri;
+				if ( isset( $wp_query->query['pagename'] ) ) {
+					$url = trailingslashit( home_url() ) . $wp_query->query['pagename'];
+				} else {
+					// Filter global arrays for security.
+					$server_array = filter_input_array( INPUT_SERVER );
+
+					// Request URL.
+					$request_uri = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL );
+					$url = home_url() . $request_uri;
+				}
 
 				// Get option to log referrer.
 				$log_referrer = $this->plugin->GetGlobalOption( 'log-404-referrer' );
@@ -911,12 +918,19 @@ class WSAL_Sensors_System extends WSAL_AbstractSensor {
 			}
 		} else {
 			if ( 'on' === $this->plugin->GetGlobalOption( 'log-visitor-404', 'off' ) ) {
-				// Filter global arrays for security.
-				$server_array = filter_input_array( INPUT_SERVER );
+				// Get global $wp_query object.
+				global $wp_query;
 
-				// Request URL.
-				$request_uri = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL );
-				$url = home_url() . $request_uri;
+				if ( isset( $wp_query->query['pagename'] ) ) {
+					$url = trailingslashit( home_url() ) . $wp_query->query['pagename'];
+				} else {
+					// Filter global arrays for security.
+					$server_array = filter_input_array( INPUT_SERVER );
+
+					// Request URL.
+					$request_uri = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL );
+					$url = home_url() . $request_uri;
+				}
 
 				// Get option to log referrer.
 				$log_referrer = $this->plugin->GetGlobalOption( 'log-visitor-404-referrer' );
