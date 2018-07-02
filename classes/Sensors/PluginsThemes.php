@@ -91,6 +91,8 @@ class WSAL_Sensors_PluginsThemes extends WSAL_AbstractSensor {
 
 		// Check if MainWP Child Plugin exists.
 		if ( is_plugin_active( 'mainwp-child/mainwp-child.php' ) ) {
+			$this->mainwp_child_init();
+
 			// Handle plugin/theme installation event via MainWP dashboard.
 			add_action( 'mainwp_child_installPluginTheme', array( $this, 'mainwp_child_install_assets' ), 10, 1 );
 
@@ -113,8 +115,35 @@ class WSAL_Sensors_PluginsThemes extends WSAL_AbstractSensor {
 	 * Triggered when a user accesses the admin area.
 	 */
 	public function EventAdminInit() {
-		$this->old_themes = wp_get_themes();
+		$this->old_themes  = wp_get_themes();
 		$this->old_plugins = get_plugins();
+	}
+
+	/**
+	 * Method: Check and initialize class members for MainWP.
+	 */
+	public function mainwp_child_init() {
+		// $_POST array arguments.
+		$post_array_args = array(
+			'function' => FILTER_SANITIZE_STRING,
+			'action'   => FILTER_SANITIZE_STRING,
+			'theme'    => FILTER_SANITIZE_STRING,
+			'mainwpsignature' => FILTER_SANITIZE_STRING,
+		);
+
+		// Get $_POST array.
+		$post_array = filter_input_array( INPUT_POST, $post_array_args );
+
+		if (
+			isset( $post_array['function'] ) && 'theme_action' === $post_array['function']
+			&& isset( $post_array['action'] ) && 'delete' === $post_array['action']
+			&& isset( $post_array['theme'] ) && ! empty( $post_array['theme'] )
+			&& isset( $post_array['mainwpsignature'] ) && ! empty( $post_array['mainwpsignature'] )
+		) {
+			if ( empty( $this->old_themes ) ) {
+				$this->old_themes = wp_get_themes();
+			}
+		}
 	}
 
 	/**
@@ -798,31 +827,32 @@ class WSAL_Sensors_PluginsThemes extends WSAL_AbstractSensor {
 			&& isset( $args['Name'] ) && ! empty( $args['Name'] )
 			&& isset( $post_array['mainwpsignature'] ) && ! empty( $post_array['mainwpsignature'] )
 		) {
-			// Get theme name.
-			$theme_name = $args['Name'];
-
 			// Get theme object.
-			$theme = $this->get_theme_by_name( $theme_name );
+			$themes = $this->GetRemovedThemes();
 
-			if ( ! empty( $theme ) && $theme instanceof WP_Theme && in_array( $theme->Name, $wp_themes, true ) ) {
-				$this->plugin->alerts->Trigger(
-					5007, array(
-						'Theme' => (object) array(
-							'Name'        => $theme->Name,
-							'ThemeURI'    => $theme->ThemeURI,
-							'Description' => $theme->Description,
-							'Author'      => $theme->Author,
-							'Version'     => $theme->Version,
-							'get_template_directory' => $theme->get_template_directory(),
-						),
-					)
-				);
+			if ( ! empty( $themes ) ) {
+				foreach ( $themes as $index => $theme ) {
+					if ( ! empty( $theme ) && $theme instanceof WP_Theme && in_array( $theme->Name, $wp_themes, true ) ) {
+						$this->plugin->alerts->Trigger(
+							5007, array(
+								'Theme' => (object) array(
+									'Name'        => $theme->Name,
+									'ThemeURI'    => $theme->ThemeURI,
+									'Description' => $theme->Description,
+									'Author'      => $theme->Author,
+									'Version'     => $theme->Version,
+									'get_template_directory' => $theme->get_template_directory(),
+								),
+							)
+						);
 
-				// Set theme to skip file changes alert.
-				$this->skip_theme_change_alerts( $theme->stylesheet );
+						// Set theme to skip file changes alert.
+						$this->skip_theme_change_alerts( $theme->stylesheet );
 
-				// Remove it from the list.
-				$this->remove_site_theme( $theme->stylesheet );
+						// Remove it from the list.
+						$this->remove_site_theme( $theme->stylesheet );
+					}
+				}
 			}
 		}
 	}
